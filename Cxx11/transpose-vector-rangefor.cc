@@ -109,13 +109,34 @@ int main(int argc, char * argv[])
   // fill A with the sequence 0 to order^2-1 as doubles
   std::iota(A.begin(), A.end(), 0.0);
 
+#if USE_CMCSTL2
+  auto itrange = prk::range(0,prk::divceil(order,tile_size));
+  auto jtrange = prk::range(0,prk::divceil(order,tile_size));
+#else
   auto itrange = prk::range(0,order,tile_size);
   auto jtrange = prk::range(0,order,tile_size);
+#endif
 
   for (auto iter = 0; iter<=iterations; iter++) {
 
     if (iter==1) trans_time = prk::wtime();
 
+#if USE_CMCSTL2
+    for (auto const it : itrange) {
+      auto ix = it * tile_size;
+      auto irange = prk::range(ix,std::min(order,ix+tile_size));
+      for (auto const jt : jtrange) {
+        auto jx = jt * tile_size;
+        auto jrange = prk::range(jx,std::min(order,jx+tile_size));
+        for (auto const i : irange) {
+          for (auto const j : jrange) {
+            B[i*order+j] += A[j*order+i];
+            A[j*order+i] += 1.0;
+          }
+        }
+      }
+    }
+#else
     for (auto it : itrange) {
       auto irange = prk::range(it,std::min(order,it+tile_size));
       for (auto jt : jtrange) {
@@ -128,6 +149,7 @@ int main(int argc, char * argv[])
         }
       }
     }
+#endif
   }
   trans_time = prk::wtime() - trans_time;
 
