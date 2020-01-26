@@ -33,7 +33,9 @@
 #define PRK_RANGES_H
 
 #if defined(USE_RANGES)
-# if defined(USE_BOOST_IRANGE)
+# if defined(USE_CXX20_RANGES)
+#  include <ranges>
+# elif defined(USE_BOOST_IRANGE)
 #  include "boost/range/irange.hpp"
 # elif defined(USE_RANGES_TS)
 #  include "range/v3/view/iota.hpp"
@@ -48,7 +50,9 @@ namespace prk {
 
     template <class S, class E>
     auto range(S start, E end) {
-#if defined(USE_BOOST_IRANGE)
+#if defined(USE_CXX20_RANGES)
+        return std::views::iota{static_cast<decltype(end)>(start), end}
+#elif defined(USE_BOOST_IRANGE)
         return boost::irange(static_cast<decltype(end)>(start), end);
 #elif defined(USE_RANGES_TS)
         return ranges::view::iota(static_cast<decltype(end)>(start), end);
@@ -57,7 +61,10 @@ namespace prk {
 
     template <class S, class E, class B>
     auto range(S start, E end, B blocking) {
-#if defined(USE_BOOST_IRANGE)
+#if defined(USE_CXX20_RANGES)
+        auto scale = [](decltype(end) i) { return i * blocking; };
+        return std::views::iota{static_cast<decltype(end)>(start / blocking), end / blocking} | std::views::transform(scale);
+#elif defined(USE_BOOST_IRANGE)
         return boost::irange(static_cast<decltype(end)>(start), end, static_cast<decltype(end)>(blocking) );
 #elif defined(USE_RANGES_TS)
         // NOTE:
